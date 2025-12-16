@@ -6,10 +6,12 @@ const userSchema = mongoose.Schema({
         required: true,
         unique: true,
     },
-    fullName: String, // Optionnel
-    email: {
+    fullName:  {
         type: String,
         required: true,
+    },
+    email: {
+        type: String,
         unique: true,
     },
     password: {
@@ -20,7 +22,10 @@ const userSchema = mongoose.Schema({
         type: Date,
         default: Date.now,
     },
-    token: String, 
+    token: {
+        type: String,
+        required: true,
+    },
 });
 
 const User = mongoose.model('users', userSchema);
