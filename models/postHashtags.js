@@ -17,6 +17,6 @@ const postHashtagSchema = mongoose.Schema({
 
 postHashtagSchema.index({ postId: 1, hashtagId: 1 }, { unique: true });
 
-const PostHashtag = mongoose.model('PostHashtag', postHashtagSchema);
+const PostHashtag = mongoose.model('postHashtags', postHashtagSchema);
 
 module.exports = PostHashtag;

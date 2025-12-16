@@ -8,6 +8,6 @@ const hashtagSchema = mongoose.Schema({
     }
 });
 
-const Hashtag = mongoose.model('Hashtag', hashtagSchema);
+const Hashtag = mongoose.model('hashtags', hashtagSchema);
 
 module.exports = Hashtag;
