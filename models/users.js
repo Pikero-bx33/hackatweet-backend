@@ -5,14 +5,20 @@ const userSchema = mongoose.Schema({
         type: String,
         required: true,
         unique: true,
+        // lowercase: true, // allow JohnCena like in the video, unicity should be checked in express route
+        trim: true,
     },
     fullName:  {
         type: String,
         required: true,
+        trim: true,
     },
     email: {
         type: String,
         unique: true,
+        lowercase: true,
+        trim: true,
+        match: [/.+@.+\..+/, "Please provide a valid email"],
     },
     password: {
         type: String,
