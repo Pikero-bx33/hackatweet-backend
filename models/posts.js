@@ -21,10 +21,10 @@ const postSchema = mongoose.Schema({
         ref: 'users', 
         required: true,
     },
-    likeCount: {
-        type: Number,
-        default: 0,
-    },
+    // likeCount: { // comes from counting how many likes (collection) are refering to this post
+    //     type: Number,
+    //     default: 0,
+    // },
     hashtags: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'hashtags',
