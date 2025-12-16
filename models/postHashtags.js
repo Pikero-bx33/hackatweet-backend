@@ -4,13 +4,13 @@ const postHashtagSchema = mongoose.Schema({
     // Clé de la relation post
     postId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Post',
+        ref: 'posts',
         required: true,
     },
     // Clé de la relation hashtags
     hashtagId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Hashtag',
+        ref: 'hashtags',
         required: true,
     }
 });

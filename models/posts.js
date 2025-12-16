@@ -18,7 +18,7 @@ const postSchema = mongoose.Schema({
 
     userId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User', 
+        ref: 'users', 
         required: true,
     },
     likeCount: {
@@ -27,7 +27,7 @@ const postSchema = mongoose.Schema({
     },
     hashtags: [{
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Hashtag',
+        ref: 'hashtags',
     }],
 });
 
