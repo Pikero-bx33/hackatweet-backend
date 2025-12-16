@@ -1,0 +1,64 @@
+var express = require('express');
+var router = express.Router();
+
+const { checkBody, getUser } = require('../modules/common');
+//const Post = require('../models/posts');
+const Post = null;
+
+const POSTS_MAX_LENGTH = 280;
+
+router.post('/', async (req, res, next) => {
+
+    const { token, content } = req.body;
+
+    if (!checkBody(req.body, ['token', 'content'])) {
+        res.json({ 
+            result: false, 
+            error: 'Missing or empty fields.' 
+        });
+        return;
+    }
+  
+    const userDetails = getUser(token);
+
+    if (!userDetails.result) {
+        res.json({ 
+            result: false, 
+            error: 'Invalid token.' 
+        });
+    }
+
+    if (content.length > POSTS_MAX_LENGTH) {
+        res.json({ 
+            result: false, 
+            error: `Content too long. Max length is ${POSTS_MAX_LENGTH}.` 
+        });
+        return;
+    }
+
+    const { username, fullName } = userDetails;
+
+//  hashtag processing required ...
+
+	const newPost = await new Post({
+        content: content,
+        createdAt: new Date(),
+		type: 'TWEET',
+		userId: userDetails._id,
+	});
+	
+	await newPost.save();
+
+	res.json({
+        result: true,
+        postId: newPost._id, 
+        createdByFullName: userDetails.fullName, 
+        createdByUsername: userDetails.username, 
+        createdAt:newPost.createdAt, 
+        content: newPost.content, 
+        // hashTags[]
+    });
+
+});
+
+module.exports = router;
