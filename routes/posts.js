@@ -2,8 +2,7 @@ var express = require('express');
 var router = express.Router();
 
 const { checkBody, getUser } = require('../modules/common');
-//const Post = require('../models/posts');
-const Post = null;
+const Post = require('../models/posts');
 
 const POSTS_MAX_LENGTH = 280;
 
@@ -35,8 +34,6 @@ router.post('/', async (req, res, next) => {
         });
         return;
     }
-
-    const { username, fullName } = userDetails;
 
 //  hashtag processing required ...
 
