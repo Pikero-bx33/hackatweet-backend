@@ -40,12 +40,7 @@ router.post("/", async (req, res, next) => {
     return;
   }
 
-  // --- LOGIQUE HASHTAGS : TEXTE -> IDS ---
-  // 1. Extraction des noms (ex: ["h1", "h2"])
-  const matches = content.match(/#[a-zA-Z0-9_-]+/g) || [];
-  const hashtagsNames = [...new Set(matches.map((tag) => tag.substring(1)))];
-
-    for (const hashtag of twitter.extractHashtags(content)) { // can't use "await" in a forEach ...
+     for (const hashtag of twitter.extractHashtags(content)) { // can't use "await" in a forEach ...
         const dbHashtag = await Hashtag.findOne({name: new RegExp(`^${hashtag}$`, 'i')});
         if (dbHashtag) {
             // le hastag existe, on pouse son id dans la liste des references du post
