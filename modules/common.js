@@ -13,16 +13,16 @@ function checkBody(body, keys) {
 }
 
 // TODO rechercher le User avec le token fourni
-function getUser( token ) {
-    return {
-        result: true,
-        _id: '17624587124587426',
-        username: 'cowboz',
-        fullName: 'john doe',
-    };
-    // return {
-    //     result: false, // if do not exists
-    // };
+function getUser(token) {
+  return {
+    result: true,
+    _id: '6942f83c63fb8d5cdf3c9a1b',
+    username: 'cowboz',
+    fullName: 'john doe',
+  };
+  // return {
+  //     result: false, // if do not exists
+  // };
 }
 
 
