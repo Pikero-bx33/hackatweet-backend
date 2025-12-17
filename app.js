@@ -23,6 +23,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
-app.use('/posts', usersRouter);
+app.use('/posts', postRouter);
+
+
 
 module.exports = app;
