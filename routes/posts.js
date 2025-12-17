@@ -27,27 +27,29 @@ router.post("/", async (req, res, next) => {
 
     const postHashtags = [];
 
-  // Récupération de l'utilisateur via le token
-  const userDetails = getUser(token);
-  if (!userDetails.result) {
-    res.json({ result: false, error: "Invalid token." });
-    return;
-  }
+    if (!checkBody(req.body, ['token', 'content'])) {
+        res.json({ 
+            result: false, 
+            error: 'Missing or empty fields.' 
+        });
+        return;
+    }
+  
+    const userDetails = getUser(token);
 
-  // Vérification de la longueur du contenu
-  if (content.length > POSTS_MAX_LENGTH) {
-    res.json({ result: false, error: `Content too long.` });
-    return;
-  }
+    if (!userDetails.result) {
+        res.json({ 
+            result: false, 
+            error: 'Invalid token.' 
+        });
+    }
 
-     for (const hashtag of twitter.extractHashtags(content)) { // can't use "await" in a forEach ...
-        const dbHashtag = await Hashtag.findOne({name: new RegExp(`^${hashtag}$`, 'i')});
-        if (dbHashtag) {
-            // le hastag existe, on pouse son id dans la liste des references du post
-            postHashtags.push(dbHashtag._id);
-        } else {
-            // il faut creer le hashtag avant de pousser l'id dans les ref du post
-        }
+    if (content.length > POSTS_MAX_LENGTH) {
+        res.json({ 
+            result: false, 
+            error: `Content too long. Max length is ${POSTS_MAX_LENGTH}.` 
+        });
+        return;
     }
 
 	const newPost = await new Post({
@@ -83,5 +85,57 @@ router.get("/all", async (req, res) => {
     res.json({ result: false, error: error.message });
   }
 });
+
+// DELETE
+router.delete('/', async (req, res) => {
+
+    const { token, postId } = req.body;
+
+    // Verif champs
+    if (!checkBody(req.body, ['token', 'postId'])) {
+        return res.json({
+            result: false,
+            error: 'Missing or empty fields.',
+        });
+    }
+
+    // Verif token 
+    const userDetails = getUser(token);
+
+    if (!userDetails.result) {
+        res.json({
+            result: false,
+            error: 'Invalid token.'
+        });
+    }
+
+    // Verif post existe
+    const post = await Post.finById(postId);
+
+    if (!post) {
+        return res.json({
+            result: false,
+            error: 'Post not found.',
+        });
+    }
+
+    //Verif post appartient user
+    if (post.userId.toString() !== userDetails._id.toString()) {
+        return res.json({
+            result: false,
+            error: 'You cannot delete this post.',
+        });
+    }
+
+    //Suppr post 
+    await Post.deleteOne({ _id: postId });
+
+    res.json({
+        result: true,
+        message: 'Post successfully deleted.',
+        deletedPostId: postId,
+    });
+
+})
 
 module.exports = router;
