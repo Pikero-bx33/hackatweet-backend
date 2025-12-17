@@ -21,10 +21,9 @@ const Hashtag = require('../models/hashtags');
 
 const POSTS_MAX_LENGTH = 280;
 
-// --- ROUTE 1 : Créer un nouveau tweet ---
-router.post("/", async (req, res, next) => {
-  const { token, content } = req.body;
+router.post('/', async (req, res, next) => {
 
+    const { token, content } = req.body;
     const postHashtags = [];
 
     if (!checkBody(req.body, ['token', 'content'])) {
@@ -52,24 +51,34 @@ router.post("/", async (req, res, next) => {
         return;
     }
 
+    for (const hashtag of twitter.extractHashtags(content)) { // can't use "await" in a forEach ...
+        const dbHashtag = await Hashtag.findOne({name: new RegExp(`^${hashtag}$`, 'i')});
+        if (dbHashtag) {
+            // le hastag existe, on pouse son id dans la liste des references du post
+            postHashtags.push(dbHashtag._id);
+        } else {
+            // il faut creer le hashtag avant de pousser l'id dans les ref du post
+        }
+    }
+
 	const newPost = await new Post({
         content: content,
 		userId: userDetails._id,
         hashtags: postHashtags,
 	});
 	
+	await newPost.save();
 
-  await newPost.save();
+	res.json({
+        result: true,
+        postId: newPost._id, 
+        createdByFullName: userDetails.fullName, 
+        createdByUsername: userDetails.username, 
+        createdAt:newPost.createdAt, 
+        content: newPost.content, 
+        // hashTags[]
+    });
 
-  res.json({
-    result: true,
-    postId: newPost._id,
-    createdByFullName: userDetails.fullName,
-    createdByUsername: userDetails.username,
-    createdAt: newPost.createdAt,
-    content: newPost.content,
-    hashTags: hashtagsNames, // On renvoie le texte pour faciliter le front
-  });
 });
 
 // --- ROUTE 2 : Récupérer tous les tweets (Ordre descendant) ---
@@ -110,7 +119,7 @@ router.delete('/', async (req, res) => {
     }
 
     // Verif post existe
-    const post = await Post.finById(postId);
+    const post = await Post.findById(postId);
 
     if (!post) {
         return res.json({
