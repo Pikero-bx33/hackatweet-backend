@@ -14,9 +14,9 @@ function checkBody(body, keys) {
 
 // TODO rechercher le User avec le token fourni
 function getUser( token ) {
-    return {
+    return { 
         result: true,
-        _id: '17624587124587426',
+        _id: '6942f83c63fb8d5cdf3c9a1b', // after importing users.json in users collection, pending routes /users
         username: 'cowboz',
         fullName: 'john doe',
     };

@@ -39,8 +39,6 @@ router.post('/', async (req, res, next) => {
 
 	const newPost = await new Post({
         content: content,
-        createdAt: new Date(),
-		type: 'TWEET',
 		userId: userDetails._id,
 	});
 	
