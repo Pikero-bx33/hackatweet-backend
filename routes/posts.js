@@ -201,6 +201,7 @@ router.patch('/', async (req, res) => {
         }
 
         post.content = content;
+
         await post.save();
         postUpdated = true;
     }
