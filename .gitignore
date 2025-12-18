@@ -60,4 +60,9 @@ typings/
 # next.js build output
 .next
 
+# windows stuff
 .DS_Store
+
+# Yarn
+.yarnrc.yml
+.yarn/install-state.gz
