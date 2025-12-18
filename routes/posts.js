@@ -27,32 +27,32 @@ router.post('/', async (req, res, next) => {
     const postHashtags = [];
 
     if (!checkBody(req.body, ['token', 'content'])) {
-        res.json({ 
-            result: false, 
-            error: 'Missing or empty fields.' 
+        res.json({
+            result: false,
+            error: 'Missing or empty fields.'
         });
         return;
     }
-  
+
     const userDetails = getUser(token);
 
     if (!userDetails.result) {
-        res.json({ 
-            result: false, 
-            error: 'Invalid token.' 
+        res.json({
+            result: false,
+            error: 'Invalid token.'
         });
     }
 
     if (content.length > POSTS_MAX_LENGTH) {
-        res.json({ 
-            result: false, 
-            error: `Content too long. Max length is ${POSTS_MAX_LENGTH}.` 
+        res.json({
+            result: false,
+            error: `Content too long. Max length is ${POSTS_MAX_LENGTH}.`
         });
         return;
     }
 
     for (const hashtag of twitter.extractHashtags(content)) { // can't use "await" in a forEach ...
-        const dbHashtag = await Hashtag.findOne({name: new RegExp(`^${hashtag}$`, 'i')});
+        const dbHashtag = await Hashtag.findOne({ name: new RegExp(`^${hashtag}$`, 'i') });
         if (dbHashtag) {
             // le hastag existe, on pouse son id dans la liste des references du post
             postHashtags.push(dbHashtag._id);
@@ -61,21 +61,21 @@ router.post('/', async (req, res, next) => {
         }
     }
 
-	const newPost = await new Post({
+    const newPost = await new Post({
         content: content,
-		userId: userDetails._id,
+        userId: userDetails._id,
         hashtags: postHashtags,
-	});
-	
-	await newPost.save();
+    });
 
-	res.json({
+    await newPost.save();
+
+    res.json({
         result: true,
-        postId: newPost._id, 
-        createdByFullName: userDetails.fullName, 
-        createdByUsername: userDetails.username, 
-        createdAt:newPost.createdAt, 
-        content: newPost.content, 
+        postId: newPost._id,
+        createdByFullName: userDetails.fullName,
+        createdByUsername: userDetails.username,
+        createdAt: newPost.createdAt,
+        content: newPost.content,
         // hashTags[]
     });
 
@@ -83,16 +83,16 @@ router.post('/', async (req, res, next) => {
 
 // --- ROUTE 2 : Récupérer tous les tweets (Ordre descendant) ---
 router.get("/all", async (req, res) => {
-  try {
-    const posts = await Post.find()
-      .populate("userId")    // Récupère les infos du User (nom, etc.)
-      .populate("hashtags")  // Remplace les IDs par les objets Hashtags { _id, name }
-      .sort({ createdAt: -1 });
+    try {
+        const posts = await Post.find()
+            .populate("userId")    // Récupère les infos du User (nom, etc.)
+            .populate("hashtags")  // Remplace les IDs par les objets Hashtags { _id, name }
+            .sort({ createdAt: -1 });
 
-    res.json({ result: true, posts: posts });
-  } catch (error) {
-    res.json({ result: false, error: error.message });
-  }
+        res.json({ result: true, posts: posts });
+    } catch (error) {
+        res.json({ result: false, error: error.message });
+    }
 });
 
 // DELETE
@@ -145,6 +145,95 @@ router.delete('/', async (req, res) => {
         deletedPostId: postId,
     });
 
+})
+
+// PATCH d'un Post. Modifiable uniquement par le créateur du post
+
+router.patch('/', async (req, res) => {
+    const { token, postId, content, isLiked } = req.body;
+
+    // Verif champs
+    if (!checkBody(req.body, ['token', 'postId'])) {
+        return res.json({
+            result: false,
+            error: 'Missing or empty fields.',
+        });
+    }
+
+    // Verif token 
+    const userDetails = getUser(token);
+
+    if (!userDetails.result) {
+        res.json({
+            result: false,
+            error: 'Invalid token.'
+        });
+    }
+
+    // Verif post existe
+    const post = await Post.findById(postId);
+
+    if (!post) {
+        return res.json({
+            result: false,
+            error: 'Post not found.',
+        });
+    }
+
+    let postUpdated = false;
+    let likeUpdated = false;
+
+    // Modif du content
+    if (content !== undefined) {
+        // Vérifier que c'est le créateur du post
+        if (post.userId.toString() !== userDetails._id.toString()) {
+            return res.json({
+                result: false,
+                error: 'Unauthorized to edit this post.',
+            });
+        }
+
+        if (content.length > POSTS_MAX_LENGTH) {
+            return res.json({
+                result: false,
+                error: `Content too long. Max length is ${POSTS_MAX_LENGTH}.`,
+            });
+        }
+
+        post.content = content;
+        await post.save();
+        postUpdated = true;
+    }
+
+    // gestion des likes
+    if (isLiked !== undefined) {
+        const existingLike = await Like.findOne({
+            userId: userDetails._id,
+            postId: postId,
+        });
+
+        if (isLiked === true && !existingLike) {
+            const newLike = new Like({
+                userId: userDetails._id,
+                postId: postId,
+            });
+            await newLike.save();
+            likeUpdated = true;
+        }
+
+        if (isLiked === false && existingLike) {
+            await Like.deleteOne({ _id: existingLike._id });
+            likeUpdated = true;
+        }
+    }
+
+
+    res.json({
+        result: true,
+        message: 'Post updated successfully.',
+        postUpdated,
+        likeUpdated,
+    });
 })
 
 module.exports = router;
