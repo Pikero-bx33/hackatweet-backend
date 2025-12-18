@@ -89,6 +89,7 @@ router.get("/all", async (req, res) => {
     const token = req.headers.authorization; // ou req.query.token selon ton front
     const userDetails = getUser(token);
     const currentUserId = userDetails.result ? userDetails._id.toString() : null;
+// ZZZ à corriger -- si currentUserId, le token n'est pas valide, donc on return false directement
 
     const posts = await Post.find()
       .populate("userId")
@@ -106,7 +107,7 @@ router.get("/all", async (req, res) => {
     const enrichedPosts = posts.map(post => ({
       ...post,
       isOwner: currentUserId ? post.userId._id.toString() === currentUserId : false,
-      isLiking: currentUserId ? likedPostIds.includes(post._id.toString()) : false
+      isLiking: post.likesId.includes() // ZZZ à corriger -- post.likesId est un tableau, si on y trouve l'_id de l'utilisateur qui a donné son token (çàd currentUserId), c'est qu'il like le post
     }));
 
     res.json({ result: true, posts: enrichedPosts });
