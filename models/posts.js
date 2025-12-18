@@ -29,6 +29,10 @@ const postSchema = mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'hashtags',
     }],
+    likesId: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'users', 
+    }],
 });
 
 const Post = mongoose.model('posts', postSchema);
