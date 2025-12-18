@@ -26,7 +26,8 @@ const POSTS_MAX_LENGTH = 280;
 router.post('/', async (req, res, next) => {
 
     const { token, content } = req.body;
-    const postHashtags = [];
+    const postHashtagsTextList = twitter.extractHashtags(content);
+    const postHashtagsRef = [];
 
     if (!checkBody(req.body, ['token', 'content'])) {
         res.json({
@@ -53,20 +54,35 @@ router.post('/', async (req, res, next) => {
         return;
     }
 
-    for (const hashtag of twitter.extractHashtags(content)) { // can't use "await" in a forEach ...
+    for (const hashtag of postHashtagsTextList) { // can't use "await" in a forEach ...
+
+        let hashtagId = null; // the _id of the hastag, straight from db if retrieved, or from db after inster
+
         const dbHashtag = await Hashtag.findOne({name: new RegExp(`^${hashtag}$`, 'i')});
-        if (dbHashtag) {
-            // le hastag existe, on pouse son id dans la liste des references du post
-            postHashtags.push(dbHashtag._id);
-        } else {
-            // il faut creer le hashtag avant de pousser l'id dans les ref du post
+
+        if (!dbHashtag) { // if hastag doesnt exist we create it
+
+          const newHashtag = await new Hashtag({
+            name: hashtag,
+          });
+          
+          await newHashtag.save(); // then save it
+
+          hashtagId = newHashtag._id; // then we have its _id
+
+        } else { // we already retrieved the hashtag _id from db
+
+          hashtagId = dbHashtag._id;
+
         }
+
+        postHashtagsRef.push(hashtagId); // lets add to the lists of the hashtags of that post
     }
 
 	const newPost = await new Post({
-        content: content,
+    content: content,
 		userId: userDetails._id,
-        hashtags: postHashtags,
+    hashtags: postHashtagsRef,
 	});
 	
 
@@ -74,12 +90,21 @@ router.post('/', async (req, res, next) => {
 
     res.json({
         result: true,
-        postId: newPost._id, 
-        createdByFullName: userDetails.fullName, 
-        createdByUsername: userDetails.username, 
-        createdAt:newPost.createdAt, 
-        content: newPost.content, 
-        // hashTags[]
+        posts:[
+          {
+            _id: newPost._id, 
+            content: newPost.content, 
+            type: "TWEET",
+            userId: {
+              username: userDetails.username,
+              fullName: userDetails.fullName,
+            },
+            createdAt: newPost.createdAt, 
+            hashTags: postHashtagsTextList,
+            isOwner: true, // always true since its the purpose of this route
+            isLiking: false, // its benne created righ now so no one can like this post yet
+          },
+        ]
     });
 
 });
