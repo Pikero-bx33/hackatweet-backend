@@ -86,28 +86,25 @@ router.post('/', async (req, res, next) => {
 // --- ROUTE 2 : Récupérer tous les tweets (Ordre descendant) ---
 router.get("/all", async (req, res) => {
   try {
-    const token = req.headers.authorization; // ou req.query.token selon ton front
+    const token = req.headers.authorization;
     const userDetails = getUser(token);
-    const currentUserId = userDetails.result ? userDetails._id.toString() : null;
-// ZZZ à corriger -- si currentUserId, le token n'est pas valide, donc on return false directement
+
+    if (!userDetails.result) {
+      return res.json({ result: false, error: "Token invalide" });
+    }
+
+    const currentUserId = userDetails._id.toString();
 
     const posts = await Post.find()
-      .populate("userId")
+      .populate("userId", "username fullName")
       .populate("hashtags")
       .sort({ createdAt: -1 })
-      .lean(); // permet de modifier les objets
-
-    // Récupérer tous les IDs de posts likés par l'utilisateur (si connecté)
-    let likedPostIds = [];
-    if (currentUserId) {
-      const likes = await Like.find({ userId: currentUserId }).select("postId").lean();
-      likedPostIds = likes.map(like => like.postId.toString());
-    }
+      .lean();
 
     const enrichedPosts = posts.map(post => ({
       ...post,
-      isOwner: currentUserId ? post.userId._id.toString() === currentUserId : false,
-      isLiking: post.likesId.includes() // ZZZ à corriger -- post.likesId est un tableau, si on y trouve l'_id de l'utilisateur qui a donné son token (çàd currentUserId), c'est qu'il like le post
+      isOwner: post.userId._id.toString() === currentUserId,
+      isLiking: Array.isArray(post.likesId) && post.likesId.includes(currentUserId)
     }));
 
     res.json({ result: true, posts: enrichedPosts });
