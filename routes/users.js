@@ -36,7 +36,7 @@ router.post('/signin', (req, res) => {
       });
       return;
   }
-
+//
   // output ok: { result: true, username, fullName, token }
   // output err: { result: false, error: "Wrong username or password." }
 
