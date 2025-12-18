@@ -21,11 +21,12 @@ const Hashtag = require('../models/hashtags');
 
 const POSTS_MAX_LENGTH = 280;
 
+
+
 router.post('/', async (req, res, next) => {
 
     const { token, content } = req.body;
-    const postHashtagsTextList = twitter.extractHashtags(content);
-    const postHashtagsRef = [];
+    const postHashtags = [];
 
     if (!checkBody(req.body, ['token', 'content'])) {
         res.json({ 
@@ -52,56 +53,32 @@ router.post('/', async (req, res, next) => {
         return;
     }
 
-    for (const hashtag of postHashtagsTextList) { // can't use "await" in a forEach ...
-
-        let hashtagId = null; // the _id of the hastag, straight from db if retrieved, or from db after inster
-
+    for (const hashtag of twitter.extractHashtags(content)) { // can't use "await" in a forEach ...
         const dbHashtag = await Hashtag.findOne({name: new RegExp(`^${hashtag}$`, 'i')});
-
-        if (!dbHashtag) { // if hastag doesnt exist we create it
-
-          const newHashtag = await new Hashtag({
-            name: hashtag,
-          });
-          
-          await newHashtag.save(); // then save it
-
-          hashtagId = newHashtag._id; // then we have its _id
-
-        } else { // we already retrieved the hashtag _id from db
-
-          hashtagId = dbHashtag._id;
-
+        if (dbHashtag) {
+            // le hastag existe, on pouse son id dans la liste des references du post
+            postHashtags.push(dbHashtag._id);
+        } else {
+            // il faut creer le hashtag avant de pousser l'id dans les ref du post
         }
-
-        postHashtagsRef.push(hashtagId); // lets add to the lists of the hashtags of that post
     }
 
 	const newPost = await new Post({
-    content: content,
+        content: content,
 		userId: userDetails._id,
-    hashtags: postHashtagsRef,
+        hashtags: postHashtags,
 	});
 	
 	await newPost.save();
 
 	res.json({
         result: true,
-        posts:[
-          {
-            _id: newPost._id, 
-            content: newPost.content, 
-            type: "TWEET",
-            userId: {
-              username: userDetails.username,
-              fullName: userDetails.fullName,
-            },
-            createdAt: newPost.createdAt, 
-            hashTags: postHashtagsTextList,
-            isOwner: true, // always true since its the purpose of this route
-            isLiking: false, // its benne created righ now so no one can like this post yet
-          },
-        ]
+        postId: newPost._id, 
+        createdByFullName: userDetails.fullName, 
+        createdByUsername: userDetails.username, 
+        createdAt:newPost.createdAt, 
+        content: newPost.content, 
+        // hashTags[]
     });
 
 });
@@ -109,12 +86,30 @@ router.post('/', async (req, res, next) => {
 // --- ROUTE 2 : Récupérer tous les tweets (Ordre descendant) ---
 router.get("/all", async (req, res) => {
   try {
-    const posts = await Post.find()
-      .populate("userId")    // Récupère les infos du User (nom, etc.)
-      .populate("hashtags")  // Remplace les IDs par les objets Hashtags { _id, name }
-      .sort({ createdAt: -1 });
+    const token = req.headers.authorization; // ou req.query.token selon ton front
+    const userDetails = getUser(token);
+    const currentUserId = userDetails.result ? userDetails._id.toString() : null;
 
-    res.json({ result: true, posts: posts });
+    const posts = await Post.find()
+      .populate("userId")
+      .populate("hashtags")
+      .sort({ createdAt: -1 })
+      .lean(); // permet de modifier les objets
+
+    // Récupérer tous les IDs de posts likés par l'utilisateur (si connecté)
+    let likedPostIds = [];
+    if (currentUserId) {
+      const likes = await Like.find({ userId: currentUserId }).select("postId").lean();
+      likedPostIds = likes.map(like => like.postId.toString());
+    }
+
+    const enrichedPosts = posts.map(post => ({
+      ...post,
+      isOwner: currentUserId ? post.userId._id.toString() === currentUserId : false,
+      isLiking: currentUserId ? likedPostIds.includes(post._id.toString()) : false
+    }));
+
+    res.json({ result: true, posts: enrichedPosts });
   } catch (error) {
     res.json({ result: false, error: error.message });
   }
@@ -169,6 +164,8 @@ router.delete('/', async (req, res) => {
         message: 'Post successfully deleted.',
         deletedPostId: postId,
     });
+
+    
 
 })
 
