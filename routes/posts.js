@@ -37,7 +37,7 @@ router.post('/', async (req, res, next) => {
         return;
     }
 
-    const userDetails = getUser(token);
+    const userDetails = await getUser(token);
 
     if (!userDetails.result) {
         res.json({
