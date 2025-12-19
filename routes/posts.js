@@ -112,7 +112,7 @@ router.post('/', async (req, res, next) => {
 // --- ROUTE 2 : Récupérer tous les tweets (Ordre descendant) ---
 router.get("/all", async (req, res) => {
   try {
-    const token = req.headers.authorization;
+    const token = req.headers.token;
     const userDetails = await getUser(token);
 
     if (!userDetails.result) {
