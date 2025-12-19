@@ -45,7 +45,6 @@ router.post('/signup', (req, res) => {
       res.json({ result: false, error: 'User already exists.' });
     }
   });
-  // output ok: { result: true, username, fullName, token }
 
 });
 
@@ -60,11 +59,23 @@ router.post('/signin', (req, res) => {
       });
       return;
   }
-//
-  // output ok: { result: true, username, fullName, token }
-  // output err: { result: false, error: "Wrong username or password." }
 
-  res.send({result: true});
+  // From morning-news-part5 + adjust:
+  User.findOne({ username: new RegExp(`^${username}$`, 'i')}).then(data => {
+    if (data && bcrypt.compareSync(password, data.password)) {
+      res.json({ 
+        result: true, 
+        userId: {
+            username: data.username,
+            fullName: data.fullName,
+            token: data.token,
+          },
+        });
+    } else {
+      res.json({ result: false, error: 'User not found or wrong password.' });
+    }
+  });
+
 });
 
 module.exports = router;
