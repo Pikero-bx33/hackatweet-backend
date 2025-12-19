@@ -37,7 +37,7 @@ router.post('/', async (req, res, next) => {
         return;
     }
 
-    const userDetails = getUser(token);
+    const userDetails = await getUser(token);
 
     if (!userDetails.result) {
         res.json({
@@ -112,8 +112,8 @@ router.post('/', async (req, res, next) => {
 // --- ROUTE 2 : Récupérer tous les tweets (Ordre descendant) ---
 router.get("/all", async (req, res) => {
   try {
-    const token = req.headers.authorization;
-    const userDetails = getUser(token);
+    const token = req.headers.token;
+    const userDetails = await getUser(token);
 
     if (!userDetails.result) {
       return res.json({ result: false, error: "Token invalide" });
@@ -153,7 +153,7 @@ router.delete('/', async (req, res) => {
     }
 
     // Verif token 
-    const userDetails = getUser(token);
+    const userDetails = await getUser(token);
 
     if (!userDetails.result) {
         res.json({
@@ -207,7 +207,7 @@ router.patch('/', async (req, res) => {
     }
 
     // Verif token 
-    const userDetails = getUser(token);
+    const userDetails = await getUser(token);
 
     if (!userDetails.result) {
         res.json({
