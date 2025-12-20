@@ -202,6 +202,7 @@ router.delete('/', async (req, res) => {
 
 router.patch("/", async (req, res) => {
   const { token, postId, content, isLiked } = req.body;
+//console.log("debug -----------------",isLiked, typeof isLiked); // string
 
   if (!checkBody(req.body, ["token", "postId"])) {
     return res.json({ result: false, error: "Missing fields." });
@@ -238,10 +239,10 @@ router.patch("/", async (req, res) => {
     const userIdStr = userId.toString();
     const alreadyLiked = post.likesId.map((id) => id.toString()).includes(userIdStr);
 
-    if (isLiked === true && !alreadyLiked) {
+    if (isLiked === "true" && !alreadyLiked) {
       post.likesId.push(userId);
       likeUpdated = true;
-    } else if (isLiked === false && alreadyLiked) {
+    } else if (isLiked === "false" && alreadyLiked) {
       post.likesId = post.likesId.filter((id) => id.toString() !== userIdStr);
       likeUpdated = true;
     }
