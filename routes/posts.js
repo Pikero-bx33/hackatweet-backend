@@ -83,6 +83,7 @@ router.post('/', async (req, res, next) => {
     content: content,
 		userId: userDetails._id,
     hashtags: postHashtagsRef,
+        likesId: [], 
 	});
 	
 
@@ -103,6 +104,7 @@ router.post('/', async (req, res, next) => {
             hashTags: postHashtagsTextList,
             isOwner: true, // always true since its the purpose of this route
             isLiking: false, // its benne created righ now so no one can like this post yet
+            likesCount: 0,
           },
         ]
     });
@@ -130,7 +132,10 @@ router.get("/all", async (req, res) => {
     const enrichedPosts = posts.map(post => ({
       ...post,
       isOwner: post.userId._id.toString() === currentUserId,
-      isLiking: Array.isArray(post.likesId) && post.likesId.includes(currentUserId)
+      isLiking: post.likesId
+        ?.map(id => id.toString())
+        .includes(currentUserId),
+      likesCount: post.likesId ? post.likesId.length : 0,
     }));
 
     res.json({ result: true, posts: enrichedPosts });
@@ -195,92 +200,65 @@ router.delete('/', async (req, res) => {
 
 // PATCH d'un Post. Modifiable uniquement par le créateur du post
 
-router.patch('/', async (req, res) => {
-    const { token, postId, content, isLiked } = req.body;
+router.patch("/", async (req, res) => {
+  const { token, postId, content, isLiked } = req.body;
 
-    // Verif champs
-    if (!checkBody(req.body, ['token', 'postId'])) {
-        return res.json({
-            result: false,
-            error: 'Missing or empty fields.',
-        });
+  if (!checkBody(req.body, ["token", "postId"])) {
+    return res.json({ result: false, error: "Missing fields." });
+  }
+
+  const userDetails = await getUser(token);
+  if (!userDetails.result) {
+    return res.json({ result: false, error: "Invalid token." });
+  }
+  const userId = userDetails._id;
+
+  const post = await Post.findById(postId);
+  if (!post) {
+    return res.json({ result: false, error: "Post not found." });
+  }
+
+  let postUpdated = false;
+  let likeUpdated = false;
+
+  /* ---------- CONTENU ---------- */
+  if (content !== undefined) {
+    if (post.userId.toString() !== userId.toString()) {
+      return res.json({ result: false, error: "Unauthorized to edit this post." });
     }
-
-    // Verif token 
-    const userDetails = await getUser(token);
-
-    if (!userDetails.result) {
-        res.json({
-            result: false,
-            error: 'Invalid token.'
-        });
+    if (content.length > POSTS_MAX_LENGTH) {
+      return res.json({ result: false, error: `Content too long. Max length is ${POSTS_MAX_LENGTH}.` });
     }
+    post.content = content;
+    postUpdated = true;
+  }
 
-    // Verif post existe
-    const post = await Post.findById(postId);
+  /* ---------- LIKES ---------- */
+  if (isLiked !== undefined) {
+    const userIdStr = userId.toString();
+    const alreadyLiked = post.likesId.map((id) => id.toString()).includes(userIdStr);
 
-    if (!post) {
-        return res.json({
-            result: false,
-            error: 'Post not found.',
-        });
+    if (isLiked === true && !alreadyLiked) {
+      post.likesId.push(userId);
+      likeUpdated = true;
+    } else if (isLiked === false && alreadyLiked) {
+      post.likesId = post.likesId.filter((id) => id.toString() !== userIdStr);
+      likeUpdated = true;
     }
+  }
 
-    let postUpdated = false;
-    let likeUpdated = false;
+  if (postUpdated || likeUpdated) {
+    await post.save();
+  }
 
-    // Modif du content
-    if (content !== undefined) {
-        // Vérifier que c'est le créateur du post
-        if (post.userId.toString() !== userDetails._id.toString()) {
-            return res.json({
-                result: false,
-                error: 'Unauthorized to edit this post.',
-            });
-        }
-
-        if (content.length > POSTS_MAX_LENGTH) {
-            return res.json({
-                result: false,
-                error: `Content too long. Max length is ${POSTS_MAX_LENGTH}.`,
-            });
-        }
-
-        post.content = content;
-
-        await post.save();
-        postUpdated = true;
-    }
-
-    // gestion des likes
-    if (isLiked !== undefined) {
-        const existingLike = await Like.findOne({
-            userId: userDetails._id,
-            postId: postId,
-        });
-
-        if (isLiked === true && !existingLike) {
-            const newLike = new Like({
-                userId: userDetails._id,
-                postId: postId,
-            });
-            await newLike.save();
-            likeUpdated = true;
-        }
-
-        if (isLiked === false && existingLike) {
-            await Like.deleteOne({ _id: existingLike._id });
-            likeUpdated = true;
-        }
-    }
-
-
-    res.json({
-        result: true,
-        message: 'Post updated successfully.',
-        postUpdated,
-        likeUpdated,
-    });
-})
+  res.json({
+    result: true,
+    message: "Post updated successfully.",
+    postUpdated,
+    likeUpdated,
+    likesCount: post.likesId.length,
+    isLiking: post.likesId.map((id) => id.toString()).includes(userId.toString()),
+  });
+});
 
 module.exports = router;
