@@ -43,24 +43,23 @@ Post.aggregate([
   },
   {
     $project: { // optionnel : reformate la sortie
-       _id: 0, //  exclut le champ _id
       count: 1, //  inclut le champ count
-      hashtag: {
         _id: '$hashtagDetails._id',
-        name: '$hashtagDetails.name'
-      }
+        name: '$hashtagDetails.name',
+    //   }
     }
   }
 ])
 .then(results => {
-  console.log(results);
-  // [
-  //   { count: 3, hashtag: { _id: ObjectId(...), name: 'lacapsule' } },
-  //   { count: 1, hashtag: { _id: ObjectId(...), name: 'more' } },
-  //   ...
-  // ]
+    res.json({
+        result: true,
+        hashtags: results,
+    });
 })
-.catch(err => console.error(err));
+.catch(err => 
+    {
+        res.json({ result: false, error: err });
+});
 
   
 });
